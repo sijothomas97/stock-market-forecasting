@@ -114,7 +114,7 @@ The notebook provides a step-by-step guide on how to process and analyze stock m
 - **Memory Errors**: Reduce the size of the dataset by using a smaller window or less frequent time intervals if you're running into memory limitations.
 
 ## Contributors
-- [Your Name](https://github.com/your-username)
+- [sijothomas97](https://github.com/sijothomas97)
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
