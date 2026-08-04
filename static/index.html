@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NSE Stock Forecast Dashboard</title>
+<script src="/vendor/plotly.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #171f30;
+    --panel-border: #2a344a;
+    --text: #e7ecf5;
+    --muted: #93a0b8;
+    --accent: #4f8cff;
+    --accent-2: #ff8a4f;
+    --good: #3fbf7f;
+    --bad: #ef5b5b;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--panel-border);
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-size: 1.15rem;
+    margin: 0;
+    font-weight: 600;
+  }
+  header .sub {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+  }
+  .controls {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .field label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  select, input[type="number"] {
+    background: #0f1420;
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    padding: 0.5rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    min-width: 9rem;
+  }
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.55rem 1.1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.secondary {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+  }
+  h2 {
+    font-size: 0.95rem;
+    margin: 0 0 0.75rem 0;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  #forecast-chart, #backtest-chart {
+    width: 100%;
+    height: 440px;
+  }
+  .status {
+    font-size: 0.85rem;
+    color: var(--muted);
+    min-height: 1.2em;
+  }
+  .status.error { color: var(--bad); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  th, td {
+    padding: 0.5rem 0.6rem;
+    text-align: right;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  th:first-child, td:first-child { text-align: left; }
+  th {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  tr.best td { color: var(--good); font-weight: 600; }
+  .metric-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .metric-card {
+    background: #0f1420;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 0.75rem 0.9rem;
+  }
+  .metric-card .label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .metric-card .value {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-top: 0.15rem;
+  }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.78rem;
+    padding: 1.5rem;
+  }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>NSE Stock Forecast Dashboard</h1>
+  <span class="sub">SARIMA + GARCH forecasts and walk-forward backtests, served locally by FastAPI</span>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Forecast</h2>
+    <div class="controls">
+      <div class="field">
+        <label for="symbol-select">Stock</label>
+        <select id="symbol-select"></select>
+      </div>
+      <div class="field">
+        <label for="horizon-input">Horizon (trading days)</label>
+        <input id="horizon-input" type="number" min="1" max="60" value="20" />
+      </div>
+      <button id="forecast-btn">Run forecast</button>
+    </div>
+    <p class="status" id="forecast-status"></p>
+    <div class="metric-cards" id="forecast-metrics"></div>
+    <div id="forecast-chart"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Backtest</h2>
+    <div class="controls">
+      <div class="field">
+        <label for="bt-horizon-input">Horizon / fold</label>
+        <input id="bt-horizon-input" type="number" min="1" max="20" value="5" />
+      </div>
+      <div class="field">
+        <label for="bt-windows-input">Windows</label>
+        <input id="bt-windows-input" type="number" min="1" max="20" value="6" />
+      </div>
+      <div class="field">
+        <label for="bt-train-input">Min train size</label>
+        <input id="bt-train-input" type="number" min="60" max="1000" value="250" />
+      </div>
+      <button id="backtest-btn">Run backtest</button>
+    </div>
+    <p class="status" id="backtest-status"></p>
+    <div id="backtest-chart"></div>
+    <table id="backtest-table">
+      <thead>
+        <tr><th>Model</th><th>MAPE %</th><th>MASE</th><th>Pinball loss</th><th>Avg fit (s)</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+
+<footer>
+  API: <a href="/docs">/docs</a> (OpenAPI) &middot; symbols come from <code>data/stocks_data/</code> &middot;
+  models are fit on request and cached in-process.
+</footer>
+
+<script>
+const API = "";
+
+const symbolSelect = document.getElementById("symbol-select");
+const horizonInput = document.getElementById("horizon-input");
+const forecastBtn = document.getElementById("forecast-btn");
+const forecastStatus = document.getElementById("forecast-status");
+const forecastMetrics = document.getElementById("forecast-metrics");
+
+const btHorizonInput = document.getElementById("bt-horizon-input");
+const btWindowsInput = document.getElementById("bt-windows-input");
+const btTrainInput = document.getElementById("bt-train-input");
+const backtestBtn = document.getElementById("backtest-btn");
+const backtestStatus = document.getElementById("backtest-status");
+const backtestTableBody = document.querySelector("#backtest-table tbody");
+
+function setStatus(el, msg, isError) {
+  el.textContent = msg || "";
+  el.classList.toggle("error", !!isError);
+}
+
+async function loadSymbols() {
+  try {
+    const res = await fetch(`${API}/stocks`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    symbolSelect.innerHTML = "";
+    for (const sym of data.symbols) {
+      const opt = document.createElement("option");
+      opt.value = sym;
+      opt.textContent = sym;
+      symbolSelect.appendChild(opt);
+    }
+    if (data.symbols.length) {
+      runForecast();
+    }
+  } catch (err) {
+    setStatus(forecastStatus, `Failed to load symbol list: ${err.message}`, true);
+  }
+}
+
+function renderMetricCards(container, metrics) {
+  container.innerHTML = "";
+  const items = [
+    ["MAPE %", metrics.mape_pct?.toFixed(2)],
+    ["MAE", metrics.mae?.toFixed(3)],
+    ["RMSE", metrics.rmse?.toFixed(3)],
+    ["CI coverage", metrics.conf_interval_coverage != null ? (metrics.conf_interval_coverage * 100).toFixed(0) + "%" : "-"],
+    ["Forecast vol %", metrics.mean_forecast_vol_pct?.toFixed(2)],
+  ];
+  for (const [label, value] of items) {
+    const card = document.createElement("div");
+    card.className = "metric-card";
+    card.innerHTML = `<div class="label">${label}</div><div class="value">${value ?? "-"}</div>`;
+    container.appendChild(card);
+  }
+}
+
+async function runForecast() {
+  const symbol = symbolSelect.value;
+  const horizon = parseInt(horizonInput.value, 10);
+  if (!symbol || !horizon) return;
+
+  forecastBtn.disabled = true;
+  setStatus(forecastStatus, "Fitting SARIMA + GARCH…");
+  try {
+    const res = await fetch(`${API}/forecast`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol, horizon }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    setStatus(
+      forecastStatus,
+      `${data.symbol} · ${data.horizon}d horizon · fit ${data.fit_seconds}s` +
+      (data.cached ? " (served from cache)" : "")
+    );
+    renderMetricCards(forecastMetrics, data.metrics);
+    renderForecastChart(data);
+  } catch (err) {
+    setStatus(forecastStatus, `Forecast failed: ${err.message}`, true);
+  } finally {
+    forecastBtn.disabled = false;
+  }
+}
+
+function renderForecastChart(data) {
+  const bandTrace = {
+    x: [...data.dates, ...data.dates.slice().reverse()],
+    y: [...data.forecast_upper, ...data.forecast_lower.slice().reverse()],
+    fill: "toself",
+    fillcolor: "rgba(79,140,255,0.18)",
+    line: { color: "transparent" },
+    name: `${Math.round(data.confidence_level * 100)}% CI`,
+    hoverinfo: "skip",
+    type: "scatter",
+  };
+  const meanTrace = {
+    x: data.dates,
+    y: data.forecast_mean,
+    mode: "lines+markers",
+    name: "Forecast (mean)",
+    line: { color: "#4f8cff", width: 2 },
+    marker: { size: 5 },
+  };
+  const actualTrace = {
+    x: data.dates,
+    y: data.actual_close,
+    mode: "lines+markers",
+    name: "Actual close (holdout)",
+    line: { color: "#ff8a4f", width: 2, dash: "dot" },
+    marker: { size: 5 },
+  };
+
+  const layout = {
+    paper_bgcolor: "transparent",
+    plot_bgcolor: "transparent",
+    font: { color: "#e7ecf5" },
+    margin: { t: 20, r: 20, b: 40, l: 55 },
+    legend: { orientation: "h", y: -0.15 },
+    xaxis: { title: "Date", gridcolor: "#2a344a" },
+    yaxis: { title: "Close price", gridcolor: "#2a344a" },
+  };
+
+  Plotly.newPlot(
+    "forecast-chart",
+    [bandTrace, meanTrace, actualTrace],
+    layout,
+    { responsive: true, displayModeBar: false }
+  );
+}
+
+async function runBacktest() {
+  const symbol = symbolSelect.value;
+  const horizon = parseInt(btHorizonInput.value, 10);
+  const windows = parseInt(btWindowsInput.value, 10);
+  const min_train_size = parseInt(btTrainInput.value, 10);
+  if (!symbol) return;
+
+  backtestBtn.disabled = true;
+  setStatus(backtestStatus, "Running walk-forward backtest (refitting every fold)…");
+  try {
+    const res = await fetch(`${API}/backtest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol, horizon, windows, min_train_size, step: horizon }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    setStatus(
+      backtestStatus,
+      `${data.symbol} · ${data.n_windows} folds · ${data.runtime_seconds}s` +
+      (data.skipped_models.length ? ` · skipped: ${data.skipped_models.join(", ")}` : "")
+    );
+    renderBacktestTable(data.summary_by_model);
+    renderBacktestChart(data.summary_by_model);
+  } catch (err) {
+    setStatus(backtestStatus, `Backtest failed: ${err.message}`, true);
+  } finally {
+    backtestBtn.disabled = false;
+  }
+}
+
+function renderBacktestTable(summary) {
+  backtestTableBody.innerHTML = "";
+  const models = Object.keys(summary);
+  if (!models.length) return;
+  const bestModel = models.reduce((a, b) => (summary[a].mape_pct <= summary[b].mape_pct ? a : b));
+  for (const model of models) {
+    const m = summary[model];
+    const row = document.createElement("tr");
+    if (model === bestModel) row.classList.add("best");
+    row.innerHTML = `
+      <td>${model}</td>
+      <td>${m.mape_pct?.toFixed(2)}</td>
+      <td>${m.mase?.toFixed(3)}</td>
+      <td>${m.pinball_loss?.toFixed(3)}</td>
+      <td>${m.fit_seconds?.toFixed(3)}</td>
+    `;
+    backtestTableBody.appendChild(row);
+  }
+}
+
+function renderBacktestChart(summary) {
+  const models = Object.keys(summary);
+  const trace = {
+    x: models,
+    y: models.map((m) => summary[m].mape_pct),
+    type: "bar",
+    marker: { color: "#4f8cff" },
+    name: "MAPE %",
+  };
+  const layout = {
+    paper_bgcolor: "transparent",
+    plot_bgcolor: "transparent",
+    font: { color: "#e7ecf5" },
+    margin: { t: 20, r: 20, b: 40, l: 55 },
+    yaxis: { title: "MAPE %", gridcolor: "#2a344a" },
+    xaxis: { gridcolor: "#2a344a" },
+  };
+  Plotly.newPlot("backtest-chart", [trace], layout, { responsive: true, displayModeBar: false });
+}
+
+forecastBtn.addEventListener("click", runForecast);
+backtestBtn.addEventListener("click", runBacktest);
+symbolSelect.addEventListener("change", () => {
+  runForecast();
+});
+
+loadSymbols();
+</script>
+</body>
+</html>
