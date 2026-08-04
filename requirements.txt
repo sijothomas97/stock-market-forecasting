@@ -1,0 +1,24 @@
+# Pinned runtime + test dependencies (Python 3.12, install with:
+#   uv venv -p 3.12 .venv && uv pip install -p .venv/bin/python -r requirements.txt)
+#
+# NOTE: statsforecast pulls in pandas 2.3.3 (downgraded from the 3.0.5 that
+# would otherwise resolve) — verified compatible with the whole pipeline
+# and test suite. If statsforecast is omitted, pandas 3.0.5 is fine too.
+numpy==2.5.1
+pandas==2.3.3
+statsmodels==0.14.6
+arch==8.0.0
+pyyaml==6.0.3
+pytest==9.1.1
+
+# Optional modern benchmark (AutoARIMA/AutoETS) used by the backtest CLI.
+# The backtest engine degrades gracefully (skips these models) if this
+# import fails, so it's safe to omit in constrained environments.
+statsforecast==2.1.1
+
+# API service (Phase 3) + dev tooling
+fastapi==0.115.14
+uvicorn==0.32.1
+httpx==0.27.2
+pydantic==2.13.4
+ruff==0.7.4

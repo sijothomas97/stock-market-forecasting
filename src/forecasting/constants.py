@@ -1,1 +1,0 @@
-FORECAST_HORIZON = 20 # Number of days to forecast

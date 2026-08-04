@@ -1,0 +1,30 @@
+# Pipeline configuration — all paths are relative to the project root.
+data_dir: data/stocks_data
+output_dir: outputs
+
+# Stock symbol to run the pipeline on (must exist as
+# <data_dir>/<SYMBOL>_with_indicators_.csv). CLI: --symbol
+symbol: TCS
+
+# Forecast horizon in resampled bars (days by default). CLI: --horizon
+horizon: 20
+
+# Resample rule for the raw 5-minute bars ("D" = calendar days -> trading days
+# after empty days are dropped; "ME" = month end).
+resample_rule: D
+
+# Use only the most recent N resampled observations for fitting (keeps the
+# smoke-scale run fast). null = use everything.
+train_window: 750
+
+sarima:
+  order: [1, 1, 1]
+  seasonal_order: [1, 1, 1, 5]   # weekly seasonality on trading days
+
+garch:
+  vol: GARCH        # GARCH | ARCH | EGARCH (passed straight to arch_model)
+  p: 1
+  q: 1              # ignored for pure ARCH
+  dist: normal
+
+confidence_level: 0.95
