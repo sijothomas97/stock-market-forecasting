@@ -1,0 +1,13 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = ["nb", ".venv", "data", "outputs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+ignore = [
+    "E501",  # line length is a soft target, not a hard gate for this project
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F401"]
