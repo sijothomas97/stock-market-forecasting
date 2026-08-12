@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.7.x"
+
+      - name: Create venv (Python 3.12)
+        run: uv venv -p 3.12 .venv
+
+      - name: Install dependencies
+        run: uv pip install -p .venv/bin/python -r requirements.txt
+
+      - name: Ruff lint
+        run: .venv/bin/ruff check src/ tests/
+
+      - name: Seed sample data (data/ is gitignored; use the bundled tiny CSV)
+        run: |
+          mkdir -p data/stocks_data
+          cp tests/data/SAMPLE_with_indicators_.csv data/stocks_data/TCS_with_indicators_.csv
+
+      - name: Run pytest
+        run: .venv/bin/python -m pytest -q
+
+      - name: Smoke-run the pipeline CLI
+        run: .venv/bin/python -m src.main --symbol TCS --horizon 5
+
+      - name: Smoke-run the backtest CLI
+        run: .venv/bin/python -m src.backtesting.run_backtest --symbol TCS --windows 2 --min-train-size 60 --horizon 3 --step 3
+
+      - name: Smoke-test the API (boot + curl /health, /stocks, /forecast)
+        run: |
+          .venv/bin/uvicorn src.api.app:app --port 8000 &
+          API_PID=$!
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8000/health && break
+            sleep 0.5
+          done
+          curl -sf http://127.0.0.1:8000/health
+          curl -sf http://127.0.0.1:8000/stocks
+          curl -sf -X POST http://127.0.0.1:8000/forecast \
+            -H "Content-Type: application/json" \
+            -d '{"symbol":"TCS","horizon":5}'
+          kill $API_PID
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t ts-stocks-api:ci .
+
+      - name: Seed sample data for the container smoke test
+        run: |
+          mkdir -p data/stocks_data
+          cp tests/data/SAMPLE_with_indicators_.csv data/stocks_data/TCS_with_indicators_.csv
+
+      - name: Run container and smoke-test endpoints
+        run: |
+          docker run -d --name ci-api -p 8000:8000 \
+            -v "${{ github.workspace }}/data:/app/data:ro" ts-stocks-api:ci
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/health && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8000/health
+          curl -sf http://127.0.0.1:8000/stocks
+          curl -sf -X POST http://127.0.0.1:8000/forecast \
+            -H "Content-Type: application/json" \
+            -d '{"symbol":"TCS","horizon":5}'
+          docker logs ci-api
+          docker stop ci-api

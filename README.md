@@ -1,122 +1,168 @@
-# Time Series Forecasting in Stock Market Data
+# Time series forecasting on share market data
 
-## Introduction
-This project performs time series forecasting using stock market data from companies such as HDFC Bank, Reliance Industries, and Sun Pharmaceutical Industries. The objective is to predict stock price trends using various statistical and machine learning models. The project involves data collection, preprocessing, feature selection, and the application of forecasting techniques to provide insights into future stock price movements.
+Classical time-series forecasting (SARIMA for price, ARCH/GARCH family for
+volatility) on 5-minute NSE OHLCV data (HDFC Bank, Reliance, Sun Pharma,
+Tata Steel, TCS, 2015-2022), served through a FastAPI backend with a
+Plotly.js dashboard for interactive forecasts and backtests.
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Features](#features)
-- [Dependencies](#dependencies)
-- [Configuration](#configuration)
-- [Documentation](#documentation)
-- [Examples](#examples)
-- [Troubleshooting](#troubleshooting)
-- [Contributors](#contributors)
-- [License](#license)
+- **Pipeline**: `src/main.py` — load → resample → SARIMA + GARCH → forecast + metrics.
+- **Backtesting**: `src/backtesting/` — walk-forward (rolling-refit) evaluation vs naive/seasonal-naive/statsforecast baselines.
+- **API**: `src/api/app.py` — FastAPI service (`/health`, `/stocks`, `/forecast`, `/backtest`) with in-process model caching.
+- **Dashboard**: `static/index.html` — stock/horizon selectors, forecast confidence-band chart, backtest metrics table (vendored Plotly.js, no CDN).
+- **CI**: `.github/workflows/ci.yml` — ruff, pytest, pipeline/backtest/API smoke tests, Docker build, all against a tiny bundled sample CSV (`tests/data/`) since `data/` is gitignored.
 
-## Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/stock-market-forecasting.git
-   ```
-2. Navigate to the project directory:
-   ```bash
-   cd stock-market-forecasting
-   ```
-3. Install the required dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+## Setup
 
-4. Ensure you have the required dataset. You can use your own stock market dataset or access it from a service like Google Drive or Kaggle.
+```bash
+uv venv -p 3.12 .venv
+uv pip install -p .venv/bin/python -r requirements.txt
+```
 
-## Usage
-1. Import the required libraries and ensure all dependencies are installed:
-   ```bash
-   pip install --upgrade mplfinance
-   ```
+Data files are not in fresh checkouts going forward — see `data/README.md`
+for where they live and the DVC/object-storage migration plan.
 
-2. Load the stock data for analysis. You can replace the sample CSV files with your own stock data:
-   ```python
-   hdfc_five_min_df = pd.read_csv('/path/to/HDFCBANK_with_indicators_.csv')
-   reliance_five_min_df = pd.read_csv('/path/to/RELIANCE_with_indicators_.csv')
-   sunpharma_five_min_df = pd.read_csv('/path/to/SUNPHARMA_with_indicators_.csv')
-   ```
+## Run the pipeline
 
-3. (Optional) Perform time series decomposition using the `statsmodels` library:
-   ```python
-   from statsmodels.tsa.seasonal import seasonal_decompose
-   decomposition = seasonal_decompose(hdfc_five_min_df['close'], period=12)
-   decomposition.plot()
-   ```
+Configuration lives in `config.yaml` (relative paths, stock symbol,
+horizon, resample rule, model orders). Symbol and horizon can be
+overridden on the CLI:
 
-4. Apply time series forecasting models (such as ARIMA, LSTM, or Prophet) to predict future stock prices. For example:
-   ```python
-   # Example using ARIMA model (you will need to adjust parameters based on your data)
-   from statsmodels.tsa.arima.model import ARIMA
-   model = ARIMA(hdfc_five_min_df['close'], order=(5, 1, 0))
-   model_fit = model.fit()
-   print(model_fit.summary())
-   ```
+```bash
+.venv/bin/python -m src.main                          # defaults from config.yaml
+.venv/bin/python -m src.main --symbol RELIANCE --horizon 10
+```
 
-## Features
-- **Stock Data Collection**: Load stock market data for various companies.
-- **Feature Engineering**: Extract and select relevant features for better forecasting accuracy.
-- **Time Series Decomposition**: Decompose stock price time series into trend, seasonality, and residual components.
-- **Forecasting Models**: Apply statistical models (like ARIMA) or machine learning methods (like LSTM) for stock price forecasting.
-- **Visualization**: Visualize stock price trends and forecast results using Matplotlib and Plotly.
+The pipeline loads one stock's raw CSV, resamples 5-min bars to daily,
+engineers returns/differences, fits SARIMA + GARCH on a training window,
+forecasts `horizon` steps with confidence intervals, and writes
+`outputs/<SYMBOL>/forecast.csv` and `outputs/<SYMBOL>/metrics.json`
+(MAE/RMSE/MAPE, CI coverage, forecast vs realized volatility).
 
-## Dependencies
-- `pandas`
-- `matplotlib`
-- `plotly`
-- `mplfinance`
-- `statsmodels`
-- `numpy`
-- `sklearn`
+## Backtesting + benchmarks
 
-## Configuration
-Adjust the following parameters in the notebook to fit your data and needs:
-- **Dataset Path**: Set the path to your CSV files containing stock market data.
-- **Model Parameters**: Modify the parameters for the forecasting models (e.g., ARIMA orders or LSTM architecture).
-- **Visualization Settings**: Customize the plots for better presentation of results.
+`src/backtesting/` implements walk-forward (rolling-refit) backtesting: at
+each fold the model is refit on a fixed-size trailing window and scored on
+the next `horizon` bars, then the window slides forward — repeated for
+several folds so metrics reflect out-of-sample performance across different
+points in time, not a single lucky/unlucky split.
 
-## Documentation
-The notebook provides a step-by-step guide on how to process and analyze stock market data for forecasting purposes. Each section is clearly labeled, and code comments explain the functionality of different blocks.
+Models compared per fold:
+- **naive** — flat-line forecast at the last observed price (random-walk baseline).
+- **seasonal_naive** — repeats the last trading week (5 bars) forward.
+- **SARIMA** — the classical model already used by the main pipeline (`src/training/training.py`), refit each fold.
+- **AutoARIMA** / **AutoETS** — Nixtla `statsforecast`'s auto-tuned classical models, included automatically if `statsforecast` is installed (best-effort import; the engine skips them and records `skipped_models` if it isn't available, rather than failing the whole backtest).
 
-## Examples
-1. **Stock Data Import**:
-   ```python
-   df = pd.read_csv('/path/to/stock_data.csv')
-   print(df.head())
-   ```
+Metrics per fold, averaged across folds in the summary:
+- **MAPE %** — mean absolute percentage error of the point forecast.
+- **MASE** — mean absolute scaled error against an in-sample naive/seasonal-naive benchmark (< 1 beats naive, > 1 is worse); Hyndman & Koehler (2006).
+- **Pinball loss** — averaged over the interval's lower/upper quantile edges (95% CI by default); scores both calibration and sharpness of the forecast interval, not just the point forecast.
 
-2. **Time Series Decomposition**:
-   ```python
-   from statsmodels.tsa.seasonal import seasonal_decompose
-   decomposition = seasonal_decompose(df['close'], period=12)
-   decomposition.plot()
-   ```
+Run it (kept at smoke scale — 8 rolling folds, 5-bar horizon, ~3-5s total including SARIMA + AutoARIMA + AutoETS refit at every fold):
 
-3. **ARIMA Model Forecasting**:
-   ```python
-   from statsmodels.tsa.arima.model import ARIMA
-   model = ARIMA(df['close'], order=(5, 1, 0))
-   model_fit = model.fit()
-   model_fit.plot_predict()
-   ```
+```bash
+.venv/bin/python -m src.backtesting.run_backtest --symbol TCS
+# or override fold count / window size / horizon:
+.venv/bin/python -m src.backtesting.run_backtest --symbol TCS --windows 8 --min-train-size 250 --horizon 5
+```
 
-## Troubleshooting
-- **Data Loading Issues**: Ensure that the CSV file paths are correct and the data has the expected structure (e.g., columns for date, close prices, etc.).
-- **Model Convergence**: If the ARIMA or other models are not converging, try tuning the hyperparameters such as the order for ARIMA or the number of layers for LSTM.
-- **Memory Errors**: Reduce the size of the dataset by using a smaller window or less frequent time intervals if you're running into memory limitations.
+Writes `reports/backtest.json` (per-fold results + `summary_by_model`).
 
-## Contributors
-- [sijothomas97](https://github.com/sijothomas97)
+### Results: TCS, 8 rolling folds, 250-bar training window, 5-day horizon
 
-## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+| Model | MAPE % | MASE | Pinball loss | Avg fit time (s) |
+|---|---|---|---|---|
+| SARIMA | **2.03** | **1.01** | **4.05** | 0.23 |
+| AutoARIMA | 2.10 | 1.05 | 4.17 | 0.24 |
+| AutoETS | 2.10 | 1.05 | 4.13 | 0.24 |
+| naive | 2.10 | 1.05 | 9.68 | ~0 |
+| seasonal_naive | 2.68 | 1.34 | 7.22 | ~0 |
 
----
+All three real models beat the naive baselines on interval quality (pinball
+loss), even though naive's flat-line point forecast ties AutoARIMA/AutoETS on
+MAPE over a short 5-day horizon on this trending series (expected — MAPE
+alone rewards "predict no change" when a series drifts steadily in one
+direction across the holdout window). SARIMA edges out both AutoARIMA and
+AutoETS here on every metric; regenerate `reports/backtest.json` (command
+above) to refresh this table for a different symbol/window/data snapshot.
+
+## API + dashboard
+
+`src/api/app.py` is a FastAPI service exposing the pipeline and backtester
+over HTTP, plus the static dashboard mounted at `/`:
+
+| Route | Method | Description |
+|---|---|---|
+| `/health` | GET | Liveness + count of available stock symbols |
+| `/stocks` | GET | List symbols with a CSV under `data/stocks_data` |
+| `/forecast` | POST | `{symbol, horizon}` → SARIMA mean forecast + confidence band + GARCH volatility forecast + metrics (fitted models are cached in-process per `(symbol, horizon)`) |
+| `/backtest` | POST | `{symbol, horizon, windows, min_train_size, step, use_statsforecast}` → walk-forward backtest summary per model (bounded: horizon ≤ 20, windows ≤ 20, min_train_size ≤ 1000) |
+| `/` | GET | Static dashboard (Plotly.js charts + backtest table) |
+| `/docs` | GET | Auto-generated OpenAPI/Swagger UI |
+
+Run it locally:
+
+```bash
+.venv/bin/uvicorn src.api.app:app --reload --port 8000
+# then open http://127.0.0.1:8000/  (dashboard)
+#      or  http://127.0.0.1:8000/docs (API docs)
+```
+
+Example requests:
+
+```bash
+curl http://127.0.0.1:8000/stocks
+curl -X POST http://127.0.0.1:8000/forecast \
+  -H "Content-Type: application/json" \
+  -d '{"symbol": "TCS", "horizon": 10}'
+curl -X POST http://127.0.0.1:8000/backtest \
+  -H "Content-Type: application/json" \
+  -d '{"symbol": "TCS", "horizon": 5, "windows": 6, "min_train_size": 250, "step": 5}'
+```
+
+The dashboard (`static/index.html`) lets you pick a stock and horizon, plots
+the forecast mean with its confidence band against the actual holdout
+close, and runs/tabulates a backtest across models — all client-side JS
+calling the API above, with Plotly.js vendored locally under
+`static/vendor/` (no CDN dependency, works offline / behind a strict CSP).
+
+## Docker
+
+```bash
+docker build -t ts-stocks-api .
+docker run --rm -p 8000:8000 -v "$(pwd)/data:/app/data:ro" ts-stocks-api
+```
+
+The image does not bundle the (gitignored, ~630MB) `data/` directory —
+mount it at runtime as above. Without a mount the container still boots
+and `/health`/`/stocks` respond (with 0 symbols available), which is what
+CI uses to verify the image is basically sound before a real data volume
+exists.
+
+## CI
+
+`.github/workflows/ci.yml` runs on every push/PR:
+
+1. `ruff check` over `src/` and `tests/`.
+2. Seeds `data/stocks_data/TCS_with_indicators_.csv` from the bundled
+   `tests/data/SAMPLE_with_indicators_.csv` (synthetic OHLCV bars, same
+   shape as the real files — see `tests/data/make_sample_csv.py`), since
+   the real data is gitignored and never present in a fresh checkout/CI runner.
+3. `pytest -q` (unit + API tests).
+4. Smoke-runs the pipeline CLI, backtest CLI, and a locally-started API
+   (curl `/health`, `/stocks`, `/forecast`).
+5. A second job builds the Docker image and repeats the API smoke test
+   against the running container.
+
+## Tests
+
+```bash
+.venv/bin/python -m pytest
+```
+
+`tests/test_api.py` covers the FastAPI service (forecast shape/bands,
+caching, bounds validation, backtest summary, static dashboard + vendored
+Plotly asset serving) using `fastapi.testclient.TestClient` — no server
+process needed. All tests run against small synthetic fixtures or the
+bundled sample CSV; none depend on the ~630MB raw CSVs being present.
+
+Exploratory notebooks are under `nb/`.

@@ -1,0 +1,459 @@
+{
+  "symbol": "TCS",
+  "config": {
+    "horizon": 5,
+    "min_train_size": 250,
+    "step": 5,
+    "max_windows": 8,
+    "seasonality": 5,
+    "confidence_level": 0.95,
+    "sarima_order": [
+      1,
+      1,
+      1
+    ],
+    "sarima_seasonal_order": [
+      1,
+      1,
+      1,
+      5
+    ]
+  },
+  "n_windows": 8,
+  "skipped_models": [],
+  "runtime_seconds": 3.31,
+  "summary_by_model": {
+    "AutoARIMA": {
+      "mape_pct": 2.1024,
+      "mase": 1.049,
+      "pinball_loss": 4.1668,
+      "fit_seconds": 0.2082
+    },
+    "AutoETS": {
+      "mape_pct": 2.096,
+      "mase": 1.0458,
+      "pinball_loss": 4.1344,
+      "fit_seconds": 0.2082
+    },
+    "SARIMA": {
+      "mape_pct": 2.0305,
+      "mase": 1.0119,
+      "pinball_loss": 4.0525,
+      "fit_seconds": 0.2052
+    },
+    "naive": {
+      "mape_pct": 2.1024,
+      "mase": 1.049,
+      "pinball_loss": 9.6799,
+      "fit_seconds": 0.0001
+    },
+    "seasonal_naive": {
+      "mape_pct": 2.6776,
+      "mase": 1.337,
+      "pinball_loss": 7.224,
+      "fit_seconds": 0.0001
+    }
+  },
+  "folds": [
+    {
+      "model": "naive",
+      "window_index": 0,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.0546813779129285,
+      "mase": 0.5164407089937962,
+      "pinball_loss": 2.169960254727666,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "seasonal_naive",
+      "window_index": 0,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.5043749749765394,
+      "mase": 1.2219132279462432,
+      "pinball_loss": 4.607545386240979,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "SARIMA",
+      "window_index": 0,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 0.8973154672426671,
+      "mase": 0.4394801921032606,
+      "pinball_loss": 3.670893666123046,
+      "fit_seconds": 0.3082
+    },
+    {
+      "model": "AutoARIMA",
+      "window_index": 0,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.0546813779129285,
+      "mase": 0.5164407089937962,
+      "pinball_loss": 3.6413459396837817,
+      "fit_seconds": 0.2402
+    },
+    {
+      "model": "AutoETS",
+      "window_index": 0,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.0610248607463444,
+      "mase": 0.5195365555514768,
+      "pinball_loss": 3.9646916007272432,
+      "fit_seconds": 0.2402
+    },
+    {
+      "model": "naive",
+      "window_index": 1,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.155776723507901,
+      "mase": 1.0866758480525203,
+      "pinball_loss": 10.905753053357037,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "seasonal_naive",
+      "window_index": 1,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 3.13249778681201,
+      "mase": 1.5741272112209006,
+      "pinball_loss": 4.616452104227124,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "SARIMA",
+      "window_index": 1,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.0230967928261174,
+      "mase": 1.0201788478221179,
+      "pinball_loss": 3.4806097997482865,
+      "fit_seconds": 0.2238
+    },
+    {
+      "model": "AutoARIMA",
+      "window_index": 1,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.155776723507901,
+      "mase": 1.0866758480525203,
+      "pinball_loss": 3.634074331751807,
+      "fit_seconds": 0.2084
+    },
+    {
+      "model": "AutoETS",
+      "window_index": 1,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.175308394551692,
+      "mase": 1.0964508231216212,
+      "pinball_loss": 4.007368322733472,
+      "fit_seconds": 0.2084
+    },
+    {
+      "model": "naive",
+      "window_index": 2,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.875563820699436,
+      "mase": 0.9664751760587208,
+      "pinball_loss": 4.479241106483677,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "seasonal_naive",
+      "window_index": 2,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.6222532316832488,
+      "mase": 0.834273664859898,
+      "pinball_loss": 4.569453566269276,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "SARIMA",
+      "window_index": 2,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.5588530533163238,
+      "mase": 0.8034972491045526,
+      "pinball_loss": 3.5234074666879733,
+      "fit_seconds": 0.1695
+    },
+    {
+      "model": "AutoARIMA",
+      "window_index": 2,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.875563820699436,
+      "mase": 0.9664751760587208,
+      "pinball_loss": 3.5979434112634276,
+      "fit_seconds": 0.1978
+    },
+    {
+      "model": "AutoETS",
+      "window_index": 2,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.8333104671816414,
+      "mase": 0.9447427023198318,
+      "pinball_loss": 3.9552951600887023,
+      "fit_seconds": 0.1978
+    },
+    {
+      "model": "naive",
+      "window_index": 3,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.897210268411322,
+      "mase": 1.0082122552116233,
+      "pinball_loss": 7.168410048986416,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "seasonal_naive",
+      "window_index": 3,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.2798166247521348,
+      "mase": 1.2104175041635552,
+      "pinball_loss": 4.533222637453097,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "SARIMA",
+      "window_index": 3,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.7849604905437764,
+      "mase": 0.9470650162871714,
+      "pinball_loss": 3.623436187714474,
+      "fit_seconds": 0.2384
+    },
+    {
+      "model": "AutoARIMA",
+      "window_index": 3,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.897210268411322,
+      "mase": 1.0082122552116233,
+      "pinball_loss": 4.053672525178484,
+      "fit_seconds": 0.1995
+    },
+    {
+      "model": "AutoETS",
+      "window_index": 3,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.8972717458512207,
+      "mase": 1.0082454152526619,
+      "pinball_loss": 4.119175586641046,
+      "fit_seconds": 0.1995
+    },
+    {
+      "model": "naive",
+      "window_index": 4,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.4689356861438063,
+      "mase": 1.2230363175099073,
+      "pinball_loss": 16.379079353616362,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "seasonal_naive",
+      "window_index": 4,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 5.407550056704379,
+      "mase": 2.703124359958164,
+      "pinball_loss": 25.183643398621868,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "SARIMA",
+      "window_index": 4,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.660555561182875,
+      "mase": 1.317550921238516,
+      "pinball_loss": 5.3048420081892695,
+      "fit_seconds": 0.16
+    },
+    {
+      "model": "AutoARIMA",
+      "window_index": 4,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.4689356861438063,
+      "mase": 1.2230363175099073,
+      "pinball_loss": 4.343798219530791,
+      "fit_seconds": 0.1998
+    },
+    {
+      "model": "AutoETS",
+      "window_index": 4,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.4690764230754834,
+      "mase": 1.2231056511807337,
+      "pinball_loss": 4.066440869683774,
+      "fit_seconds": 0.1998
+    },
+    {
+      "model": "naive",
+      "window_index": 5,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.929073473150822,
+      "mase": 1.4578691020595793,
+      "pinball_loss": 18.144948419646585,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "seasonal_naive",
+      "window_index": 5,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.715111801507533,
+      "mase": 1.3475882116921194,
+      "pinball_loss": 4.719751798281907,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "SARIMA",
+      "window_index": 5,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.937606508582806,
+      "mase": 1.4622163635430148,
+      "pinball_loss": 4.669333079736576,
+      "fit_seconds": 0.1723
+    },
+    {
+      "model": "AutoARIMA",
+      "window_index": 5,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.929073473150822,
+      "mase": 1.4578691020595793,
+      "pinball_loss": 5.000126690816709,
+      "fit_seconds": 0.1939
+    },
+    {
+      "model": "AutoETS",
+      "window_index": 5,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.92919314188964,
+      "mase": 1.457928459518334,
+      "pinball_loss": 4.145591734869191,
+      "fit_seconds": 0.1939
+    },
+    {
+      "model": "naive",
+      "window_index": 6,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.8533215937055612,
+      "mase": 0.8862357458175086,
+      "pinball_loss": 5.785291776974045,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "seasonal_naive",
+      "window_index": 6,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.057842106739872,
+      "mase": 0.9849767516015133,
+      "pinball_loss": 4.7655309707296665,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "SARIMA",
+      "window_index": 6,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.1480430165452318,
+      "mase": 1.0276594940847954,
+      "pinball_loss": 3.6865019236241467,
+      "fit_seconds": 0.1587
+    },
+    {
+      "model": "AutoARIMA",
+      "window_index": 6,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.8533215937055612,
+      "mase": 0.8862357458175086,
+      "pinball_loss": 3.69459668122818,
+      "fit_seconds": 0.2127
+    },
+    {
+      "model": "AutoETS",
+      "window_index": 6,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.8533269425110261,
+      "mase": 0.8862383129420289,
+      "pinball_loss": 4.079046840458147,
+      "fit_seconds": 0.2127
+    },
+    {
+      "model": "naive",
+      "window_index": 7,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.5848154191360617,
+      "mase": 1.2469245402663296,
+      "pinball_loss": 12.40627091296649,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "seasonal_naive",
+      "window_index": 7,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 1.7011115902218692,
+      "mase": 0.8195307545973365,
+      "pinball_loss": 4.796183865491233,
+      "fit_seconds": 0.0001
+    },
+    {
+      "model": "SARIMA",
+      "window_index": 7,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.233568032371362,
+      "mase": 1.0779363561580282,
+      "pinball_loss": 4.460865954530667,
+      "fit_seconds": 0.2111
+    },
+    {
+      "model": "AutoARIMA",
+      "window_index": 7,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.5848154191360617,
+      "mase": 1.2469245402663296,
+      "pinball_loss": 5.368468786920813,
+      "fit_seconds": 0.2129
+    },
+    {
+      "model": "AutoETS",
+      "window_index": 7,
+      "train_size": 250,
+      "horizon": 5,
+      "mape_pct": 2.5491849350147566,
+      "mase": 1.2297939362791033,
+      "pinball_loss": 4.737190205352793,
+      "fit_seconds": 0.2129
+    }
+  ]
+}
